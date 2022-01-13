@@ -1,76 +1,80 @@
 var findCheapestPrice = function (n, flights, src, dst, k) {
   let obj = {};
-  let graph = {};
   let arr = new Array(n);
 
-  let Loop = (currentFlight) => {
-    if (obj[currentFlight[0]]) {
-      let newPrice = currentFlight[2] + obj[currentFlight[0]].price;
-      let newStop = obj[currentFlight[0]].stops + 1;
-
-      if (obj[currentFlight[1]]) {
-        newPrice < obj[currentFlight[1]].price && newStop <= k
-          ? newStop === k && currentFlight[1] != dst
-            ? null
-            : ((obj[currentFlight[1]].price = newPrice),
-              (obj[currentFlight[1]].stops = newStop))
-          : null;
-      } else {
-        newStop <= k
-          ? (obj[currentFlight[1]] = {
-              price: obj[currentFlight[0]].price + currentFlight[2],
-              stops: obj[currentFlight[0]].stops + 1,
-            })
-          : null;
-      }
+  class Queue {
+    constructor() {
+      this.item = {};
+      this.first = 0;
+      this.last = 0;
     }
-  };
+
+    enqueue(element) {
+      this.item[this.last] = element;
+      this.last++;
+    }
+
+    dequeue() {
+      let deleteItem = this.item[this.first];
+      delete this.item[this.first];
+      if (this.last - this.first > 0) {
+        this.first++;
+      }
+      return deleteItem;
+    }
+
+    size() {
+      return this.last - this.first;
+    }
+  }
+
+  let queue = new Queue();
 
   for (var i = 0; i < flights.length; i++) {
     let currentFlight = flights[i];
 
-    if (!graph[currentFlight[0]]) {
-      graph[currentFlight[0]] = {};
-    }
-    graph[currentFlight[0]][currentFlight[1]] = currentFlight[2];
-
-    if (currentFlight[0] === src) {
-      obj[currentFlight[1]] = {
-        price: currentFlight[2],
-        stops: 0,
-      };
+    let currentArr = arr[currentFlight[0]];
+    if (currentArr) {
+      currentArr.push([currentFlight[1], currentFlight[2]]);
     } else {
-      let currentArr = arr[currentFlight[0]];
-      if (currentArr) {
-        currentArr.push(currentFlight);
-      } else {
-        arr[currentFlight[0]] = [currentFlight];
+      arr[currentFlight[0]] = [[currentFlight[1], currentFlight[2]]];
+    }
+  }
+
+  queue.enqueue([src, -1, 0]);
+
+  while (queue.size() > 0) {
+    let v = queue.dequeue();
+    let srce = v[0];
+    let s = v[1];
+    let p = v[2];
+
+    if (srce !== dst && s === k) continue;
+
+    if (obj[srce]) {
+      let check = obj[srce];
+      p < check.price && s <= k ? ((check.price = p), (check.stops = s)) : null;
+    } else {
+      obj[srce] = { price: p, stops: s };
+    }
+    if (arr[srce]) {
+      let currArr = arr[srce];
+      for (let w = 0; w < currArr.length; w++) {
+        let currSrc = currArr[w][0];
+        let currPrice = currArr[w][1];
+        let newPrice = currPrice + p;
+
+        if (!obj[currSrc]) {
+          obj[currSrc] = { price: Infinity, stops: 0 };
+        }
+
+        newPrice < obj[currSrc].price
+          ? queue.enqueue([currSrc, s + 1, newPrice])
+          : null;
       }
     }
   }
 
-  console.log(obj);
-
-  if (dst > src) {
-    for (var l = 0; l < arr.length; l++) {
-      if (arr[l]) {
-        for (var j = 0; j < arr[l].length; j++) {
-          let currentFlight = arr[l][j];
-          Loop(currentFlight);
-        }
-      }
-    }
-  } else {
-    for (var l = arr.length; l >= 0; l--) {
-      if (arr[l]) {
-        for (var j = 0; j < arr[l].length; j++) {
-          let currentFlight = arr[l][j];
-          Loop(currentFlight);
-        }
-      }
-    }
-  }
-  console.log(graph);
   if (obj[dst]) {
     return obj[dst].price;
   }
@@ -79,15 +83,15 @@ var findCheapestPrice = function (n, flights, src, dst, k) {
 
 let n = 5;
 let flights = [
-  [0, 1, 5],
-  [1, 2, 5],
-  [0, 3, 2],
-  [3, 1, 2],
-  [1, 4, 1],
-  [4, 2, 1],
+  [0, 1, 1],
+  [0, 2, 5],
+  [1, 2, 1],
+  [2, 3, 1],
+  [3, 4, 1],
 ];
+
 let src = 0;
-let dst = 2;
+let dst = 4;
 let k = 2;
 
 //**Recursion Method**//
